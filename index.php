@@ -14,7 +14,15 @@ $dsn = $config['dsn'];
 $username = $config['username'];
 $password = $config['password'];
 
-$conection = new PDO($dsn, $username, $password);
+try {
+    $conection = new PDO($dsn, $username, $password);
+    $conection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conection->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+
+} catch (PDOException $exception) {
+    echo 'Connection error: ' . $exception->getMessage();
+    exit;
+}
 
 $app = AppFactory::create();
 $app->get('/', function (Request $request, Response $response, $args) use ($view) {
@@ -23,9 +31,14 @@ $app->get('/', function (Request $request, Response $response, $args) use ($view
     return $response;
 });
 $app->get('/about', function (Request $request, Response $response, $args) use ($view) {
-    $body = $view->render('about.twig', [name => 'Yevhenii']);
+    $body = $view->render('about.twig', ['name' => 'Yevhenii']);
     $response->getBody()->write("$body");
     return $response;
 });
 
+$app->get('/{url_key}', function (Request $request, Response $response, $args) use ($view) {
+    $body = $view->render('post.twig', ['url_key' => $args['url_key']]);
+    $response->getBody()->write($body);
+    return $response;
+});
 $app->run();
