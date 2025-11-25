@@ -5,24 +5,32 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
 use Twig\Loader\FilesystemLoader;
 use Twig\Environment;
+use Blog\PostMapper;
 
 require __DIR__ . '/vendor/autoload.php';
+
 $loader = new FilesystemLoader(__DIR__ . '/templates');
 $view = new Environment($loader);
-$config = include 'config/database.php';
+
+$config = include __DIR__ . '/config/database.php';
+
 $dsn = $config['dsn'];
 $username = $config['username'];
 $password = $config['password'];
 
 try {
-    $conection = new PDO($dsn, $username, $password);
-    $conection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $conection->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    $connection = new PDO($dsn, $username, $password, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    ]);
+
+    echo "CONNECTED SUCCESS!";
 
 } catch (PDOException $exception) {
     echo 'Connection error: ' . $exception->getMessage();
     exit;
 }
+$postMapper = new PostMapper($connection);
 
 $app = AppFactory::create();
 $app->get('/', function (Request $request, Response $response, $args) use ($view) {
@@ -37,7 +45,8 @@ $app->get('/about', function (Request $request, Response $response, $args) use (
 });
 
 $app->get('/{url_key}', function (Request $request, Response $response, $args) use ($view) {
-    $body = $view->render('post.twig', ['url_key' => $args['url_key']]);
+    $post =$postMapper->getPostByUrlKey((string) $args['url_key']);
+    $body = $view->render('post.twig', ['post' => $post]);
     $response->getBody()->write($body);
     return $response;
 });
